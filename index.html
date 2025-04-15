@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryoCylinder Monitoring</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--primary-color) !important;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-weight: bold;
+        }
+        
+        .cylinder-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .cylinder-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .level-indicator {
+            width: 100%;
+            height: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .level-fill {
+            height: 100%;
+            border-radius: 5px;
+            background-color: var(--primary-color);
+            transition: width 0.5s;
+        }
+        
+        .dashboard-header {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 250px;
+            padding-top: 56px;
+            background-color: white;
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            z-index: 999;
+            transition: transform 0.3s;
+        }
+        
+        .sidebar-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-item i {
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .sidebar-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .sidebar-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .sidebar-item.active i {
+            color: white;
+        }
+        
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .content-wrapper {
+                margin-left: 0 !important;
+            }
+        }
+        
+        .content-wrapper {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+        }
+        
+        .history-chart {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        
+        /* Loading spinner */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        /* Login form */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        
+        .login-form {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-form .form-title {
+            text-align: center;
+            margin-bottom: 24px;
+            color: var(--primary-color);
+        }
+        
+        .login-form .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+        </div>
+    </div>
+
+    <!-- Login View -->
+    <div id="loginView" class="login-container d-none">
+        <div class="login-form">
+            <h2 class="form-title">CryoCylinder Monitoring</h2>
+            <div class="alert alert-danger d-none" id="loginError"></div>
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Имя пользователя</label>
+                    <input type="text" class="form-control" id="username" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Пароль</label>
+                    <input type="password" class="form-control" id="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Войти</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application View -->
+    <div id="appView" class="d-none">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="fas fa-snowflake me-2"></i>
+                    CryoCylinder
+                </a>
+                <button class="navbar-toggler" type="button" id="sidebarToggle">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i>
+                                <span id="currentUserName">Пользователь</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" id="btnLogout">Выйти</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-item active" data-view="dashboard">
+                <i class="fas fa-tachometer-alt"></i>
+                Главная
+            </div>
+            <div class="sidebar-item" data-view="cylinders">
+                <i class="fas fa-flask"></i>
+                Цилиндры
+            </div>
+            <div class="sidebar-item admin-only" data-view="users">
+                <i class="fas fa-users"></i>
+                Пользователи
+            </div>
+            <div class="sidebar-item admin-only" data-view="settings">
+                <i class="fas fa-cog"></i>
+                Настройки
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-wrapper pt-5 mt-3">
+            <!-- Dashboard View -->
+            <div id="dashboardView" class="view-content">
+                <div class="dashboard-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h1>Панель управления</h1>
+                            <p class="text-muted">Добро пожаловать, <span id="dashboardUserName">Пользователь</span></p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <button class="btn btn-primary" id="refreshDashboard">
+                                <i class="fas fa-sync-alt me-2"></i>Обновить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Всего цилиндров</h5>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-flask fa-3x text-primary me-3"></i>
+                                    <h2 id="totalCylinders">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Низкий уровень</h5>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-exclamation-triangle fa-3x text-warning me-3"></i>
+                                    <h2 id="lowLevelAlerts">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Не на связи</h5>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-power-off fa-3x text-danger me-3"></i>
+                                    <h2 id="offlineCylinders">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Последние обновления</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Цилиндр</th>
+                                        <th>Компания</th>
+                                        <th>Уровень</th>
+                                        <th>Статус</th>
+                                        <th>Последнее обновление</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentUpdatesTable">
+                                    <!-- Будет заполнено JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cylinders View -->
+            <div id="cylindersView" class="view-content d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Цилиндры</h1>
+                    <div>
+                        <button class="btn btn-outline-secondary me-2" id="refreshCylinders">
+                            <i class="fas fa-sync-alt me-2"></i>Обновить
+                        </button>
+                        <button class="btn btn-primary admin-only" id="addCylinder">
+                            <i class="fas fa-plus me-2"></i>Добавить цилиндр
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row" id="cylindersContainer">
+                    <!-- Карточки цилиндров будут вставлены с помощью JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Cylinder Detail View -->
+            <div id="cylinderDetailView" class="view-content d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <button class="btn btn-outline-secondary me-2" id="backToCylinders">
+                            <i class="fas fa-arrow-left me-2"></i>Назад
+                        </button>
+                        <h1 id="cylinderDetailName">Название цилиндра</h1>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-secondary me-2" id="refreshCylinderDetail">
+                            <i class="fas fa-sync-alt me-2"></i>Обновить
+                        </button>
+                        <button class="btn btn-primary admin-only" id="editCylinder">
+                            <i class="fas fa-edit me-2"></i>Редактировать
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Детали</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <div class="fw-bold">ID:</div>
+                                        <div id="cylinderDetailId">-</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="fw-bold">Компания:</div>
+                                        <div id="cylinderDetailCompany">-</div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <div class="fw-bold">Тип газа:</div>
+                                        <div id="cylinderDetailGas">-</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="fw-bold">Объем:</div>
+                                        <div id="cylinderDetailVolume">-</div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <div class="fw-bold">Интервал проверки:</div>
+                                        <div id="cylinderDetailInterval">-</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="fw-bold">Датчик давления:</div>
+                                        <div id="cylinderDetailPrssOn">-</div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="fw-bold">Последнее обновление:</div>
+                                        <div id="cylinderDetailLastUpdate">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Текущий статус</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="fw-bold">Уровень:</div>
+                                    <div class="d-flex align-items-center">
+                                        <h3 id="cylinderDetailLevel">-</h3>
+                                        <span class="ms-2" id="cylinderDetailUnit">-</span>
+                                    </div>
+                                    <div class="level-indicator">
+                                        <div class="level-fill" id="cylinderDetailLevelIndicator" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3 pressure-section">
+                                    <div class="fw-bold">Давление:</div>
+                                    <div class="d-flex align-items-center">
+                                        <h3 id="cylinderDetailPressure">-</h3>
+                                        <span class="ms-2">бар</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="fw-bold">Батарея:</div>
+                                    <div class="d-flex align-items-center">
+                                        <h3 id="cylinderDetailBattery">-</h3>
+                                        <span class="ms-2">В</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5>История</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="history-chart" id="historyChart">
+                            <!-- График будет вставлен с помощью JavaScript -->
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button class="btn btn-outline-secondary" id="view24h">24 часа</button>
+                            <button class="btn btn-outline-secondary" id="view7d">7 дней</button>
+                            <button class="btn btn-outline-secondary" id="view30d">30 дней</button>
+                            <button class="btn btn-outline-secondary" id="viewAll">Всё время</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Действия</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary admin-only" id="calibrateButton">
+                                        <i class="fas fa-sliders-h me-2"></i>Калибровка
+                                    </button>
+                                    <button class="btn btn-success" id="exportDataButton">
+                                        <i class="fas fa-file-export me-2"></i>Экспорт данных
+                                    </button>
+                                    <button class="btn btn-danger admin-only" id="deleteCylinderButton">
+                                        <i class="fas fa-trash me-2"></i>Удалить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Сырые значения</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr>
+                                            <td>Уровень АЦП:</td>
+                                            <td id="cylinderDetailLADC">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Калибровка уровня:</td>
+                                            <td id="cylinderDetailLevelCalibration">-</td>
+                                        </tr>
+                                        <tr class="pressure-row">
+                                            <td>Давление АЦП:</td>
+                                            <td id="cylinderDetailPADC">-</td>
+                                        </tr>
+                                        <tr class="pressure-row">
+                                            <td>Калибровка давления:</td>
+                                            <td id="cylinderDetailPressureCalibration">-</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Users View (Admin Only) -->
+            <div id="usersView" class="view-content d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Пользователи</h1>
+                    <button class="btn btn-primary" id="addUser">
+                        <i class="fas fa-plus me-2"></i>Добавить пользователя
+                    </button>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Имя пользователя</th>
+                                        <th>Роль</th>
+                                        <th>Компания</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTable">
+                                    <!-- Будет заполнено JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings View (Admin Only) -->
+            <div id="settingsView" class="view-content d-none">
+                <h1 class="mb-4">Настройки</h1>
+                
+                <ul class="nav nav-tabs mb-4" id="settingsTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#companiesTab">Компании</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#gasesTab">Газы</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#wifiTab">WiFi сети</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#systemTab">Система</a>
+                    </li>
+                </ul>
+                
+                <div class="tab-content">
+                    <!-- Companies Tab -->
+                    <div class="tab-pane fade show active" id="companiesTab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>Компании</h3>
+                            <button class="btn btn-sm btn-primary" id="addCompany">
+                                <i class="fas fa-plus me-2"></i>Добавить компанию
+                            </button>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Название компании</th>
+                                                <th>Цилиндры</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="companiesTable">
+                                            <!-- Будет заполнено JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gases Tab -->
+                    <div class="tab-pane fade" id="gasesTab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>Газы</h3>
+                            <button class="btn btn-sm btn-primary" id="addGas">
+                                <i class="fas fa-plus me-2"></i>Добавить газ
+                            </button>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Название газа</th>
+                                                <th>Плотность (кг/л)</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="gasesTable">
+                                            <!-- Будет заполнено JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- WiFi Tab -->
+                    <div class="tab-pane fade" id="wifiTab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>WiFi сети</h3>
+                            <button class="btn btn-sm btn-primary" id="addWifi">
+                                <i class="fas fa-plus me-2"></i>Добавить сеть
+                            </button>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>SSID</th>
+                                                <th>Пароль</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="wifiTable">
+                                            <!-- Будет заполнено JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- System Tab -->
+                    <div class="tab-pane fade" id="systemTab">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Обслуживание системы</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <h6>Резервное копирование</h6>
+                                    <p class="text-muted">Создайте резервную копию всех данных системы.</p>
+                                    <button class="btn btn-primary" id="backupSystem">
+                                        <i class="fas fa-download me-2"></i>Создать резервную копию
+                                    </button>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h6>Проверка структуры файлов</h6>
+                                    <p class="text-muted">Проверить и восстановить структуру файлов системы.</p>
+                                    <button class="btn btn-warning" id="checkFiles">
+                                        <i class="fas fa-check-circle me-2"></i>Проверить файлы
+                                    </button>
+                                </div>
+                                
+                                <div>
+                                    <h6>Сброс системы</h6>
+                                    <p class="text-muted">Сброс всех настроек к значениям по умолчанию. Используйте с осторожностью!</p>
+                                    <button class="btn btn-danger" id="resetSystem">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>Сбросить систему
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <!-- Add/Edit Cylinder Modal -->
+    <div class="modal fade" id="cylinderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cylinderModalTitle">Добавить цилиндр</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="cylinderForm">
+                        <input type="hidden" id="cylinderId">
+                        <div class="mb-3">
+                            <label for="cylinderName" class="form-label">Название цилиндра</label>
+                            <input type="text" class="form-control" id="cylinderName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cylinderCompany" class="form-label">Компания</label>
+                            <select class="form-select" id="cylinderCompany">
+                                <!-- Будет заполнено JavaScript -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cylinderGas" class="form-label">Газ</label>
+                            <select class="form-select" id="cylinderGas">
+                                <!-- Будет заполнено JavaScript -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cylinderVolume" class="form-label">Объем (л)</label>
+                            <input type="number" class="form-control" id="cylinderVolume" min="0" step="0.1">
+                        </div>
+                        <div class="mb-3">
+                            <label for="cylinderOrientation" class="form-label">Ориентация</label>
+                            <select class="form-select" id="cylinderOrientation">
+                                <option value="vert">Вертикальная</option>
+                                <option value="hor">Горизонтальная</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cylinderPressure" class="form-label">Датчик давления</label>
+                            <select class="form-select" id="cylinderPressure">
+                                <option value="1">Включен</option>
+                                <option value="0">Отключен</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cylinderUnit" class="form-label">Единица измерения</label>
+                            <select class="form-select" id="cylinderUnit">
+                                <option value="L">Литры (л)</option>
+                                <option value="%">Проценты (%)</option>
+                                <option value="Kg">Килограммы (кг)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cylinderInterval" class="form-label">Интервал проверки</label>
+                            <select class="form-select" id="cylinderInterval">
+                                <option value="0.08">5 минут</option>
+                                <option value="0.5">30 минут</option>
+                                <option value="1">1 час</option>
+                                <option value="2">2 часа</option>
+                                <option value="3">3 часа</option>
+                                <option value="4">4 часа</option>
+                                <option value="8">8 часов</option>
+                                <option value="12">12 часов</option>
+                                <option value="24">24 часа</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveCylinder">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit User Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userModalTitle">Добавить пользователя</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label for="userName" class="form-label">Имя пользователя</label>
+                            <input type="text" class="form-control" id="userName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userPassword" class="form-label">Пароль</label>
+                            <input type="password" class="form-control" id="userPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userRole" class="form-label">Роль</label>
+                            <select class="form-select" id="userRole">
+                                <option value="user">Пользователь</option>
+                                <option value="admin">Администратор</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userCompany" class="form-label">Компания</label>
+                            <select class="form-select" id="userCompany">
+                                <option value="all">Все компании</option>
+                                <!-- Будет заполнено JavaScript -->
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveUser">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Company Modal -->
+    <div class="modal fade" id="companyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить компанию</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="companyForm">
+                        <div class="mb-3">
+                            <label for="companyName" class="form-label">Название компании</label>
+                            <input type="text" class="form-control" id="companyName" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveCompany">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Gas Modal -->
+    <div class="modal fade" id="gasModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить газ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="gasForm">
+                        <div class="mb-3">
+                            <label for="gasName" class="form-label">Название газа</label>
+                            <input type="text" class="form-control" id="gasName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="gasDensity" class="form-label">Плотность (кг/л)</label>
+                            <input type="number" class="form-control" id="gasDensity" min="0" step="0.001" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveGas">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add WiFi Modal -->
+    <div class="modal fade" id="wifiModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить WiFi сеть</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="wifiForm">
+                        <div class="mb-3">
+                            <label for="wifiSSID" class="form-label">SSID</label>
+                            <input type="text" class="form-control" id="wifiSSID" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="wifiPassword" class="form-label">Пароль</label>
+                            <input type="password" class="form-control" id="wifiPassword" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveWifi">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Calibration Modal -->
+    <div class="modal fade" id="calibrationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Калибровка цилиндра</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="calibrationForm">
+                        <input type="hidden" id="calibrationCylinderId">
+                        
+                        <h6 class="mb-3">Калибровка уровня</h6>
+                        <div class="mb-3">
+                            <label for="l0" class="form-label">Уровень при 0% (значение АЦП)</label>
+                            <input type="number" class="form-control" id="l0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="l1" class="form-label">Уровень при 100% (значение АЦП)</label>
+                            <input type="number" class="form-control" id="l1" required>
+                        </div>
+                        
+                        <div class="pressure-calibration-section">
+                            <h6 class="mb-3 mt-4">Калибровка давления</h6>
+                            <div class="mb-3">
+                                <label for="p0" class="form-label">Давление при 0 бар (значение АЦП)</label>
+                                <input type="number" class="form-control" id="p0">
+                            </div>
+                            <div class="mb-3">
+                                <label for="p1" class="form-label">Давление при максимуме (значение АЦП)</label>
+                                <input type="number" class="form-control" id="p1">
+                            </div>
+                            <div class="mb-3">
+                                <label for="prss1" class="form-label">Максимальное давление (бар)</label>
+                                <input type="number" class="form-control" id="prss1" step="0.1">
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Текущие значения АЦП: <br>
+                            Уровень: <span id="currentLevelADC">-</span><br>
+                            Давление: <span id="currentPressureADC">-</span>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveCalibration">Сохранить калибровку</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmationTitle">Подтверждение</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="confirmationMessage">
+                    Вы уверены, что хотите продолжить?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-danger" id="confirmButton">Подтвердить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js для графиков -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Core modules -->
+    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    
+    <!-- Feature modules -->
+    <script src="assets/js/dashboard.js"></script>
+    <script src="assets/js/cylinders.js"></script>
+    <script src="assets/js/settings.js"></script>
+    
+    <!-- Application core -->
+    <script src="assets/js/app.js"></script>
+    
+    <!-- Initialization script -->
+    <script src="assets/js/init.js"></script>
+    <!-- Основной JavaScript файл -->
+    <script src="assets/js/main.js"></script>
+    </body>
+</html>index.html 

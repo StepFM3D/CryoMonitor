@@ -1,0 +1,155 @@
+#main, input, select,.m, .mIni  { font-family: arial; font-weight: bolder}
+#main {text-align: center; font-size: 1.2em; display: none}
+input, select {margin: auto; font-size: 1.1em; margin: 0.6em}
+.wrk {width: 6em}
+.m, .mIni,.mIt, .mD {display: inline-block; padding: 0.4em; margin: 0.3em; width: 11em; background-color: Lavender; cursor: pointer}
+.m {width: 6.2em}
+.mIni {margin: 1.5em}
+.mIni, .mIt, .nmU, .spnBlue {color: darkblue}
+.mD {color: brown; width: 2em}
+.nm, .nm2  {color: darkblue; font-size: 1.5em; cursor: default; margin: -0.1em}
+.nm2  {color: brown}
+
+/* Стили для режима работы и истории */
+#workMode, #historyMode {
+    text-align: center;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 15px;
+}
+
+/* Стили для информационных блоков */
+.info-block {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px 0;
+    display: inline-block;
+    width: 100%;
+    text-align: left;
+}
+
+/* Стили для заголовков в информационных блоках */
+.info-title {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+/* Стили для значений в информационных блоках */
+.info-value {
+    color: darkblue;
+    font-size: 1.1em;
+}
+
+/* Стили для таблицы истории */
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 0.9em;
+}
+
+.history-table th, .history-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.history-table th {
+    background-color: Lavender;
+    color: #333;
+}
+
+.history-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* Стили для кнопок в рабочем режиме */
+.action-buttons {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.action-buttons input[type="button"] {
+    margin: 5px;
+    padding: 8px 15px;
+    background-color: Lavender;
+    border: none;
+    color: darkblue;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.action-buttons input[type="button"]:hover {
+    background-color: #d8d8f0;
+}
+
+/* Стили для сортировки и фильтрации */
+.sort-control {
+    margin: 10px 0;
+    padding: 5px;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+}
+
+.company-header {
+    font-weight: bold;
+    color: #333;
+    margin-top: 10px;
+    padding: 5px;
+    background-color: #e9ecef;
+    border-radius: 3px;
+}
+
+/* Стили для форм редактирования пользователей */
+#editUserForm {
+    text-align: left;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    margin-top: 15px;
+}
+
+#editUserForm input, #editUserForm select {
+    width: 100%;
+    margin: 5px 0;
+}
+
+#editUserForm button {
+    background-color: Lavender;
+    color: darkblue;
+    border: none;
+    padding: 8px 15px;
+    cursor: pointer;
+    border-radius: 3px;
+    margin-top: 10px;
+}
+
+#editUserForm button:hover {
+    background-color: #d8d8f0;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .m, .mIni, .mIt, .mD {
+        width: auto;
+    }
+    
+    #workMode, #historyMode {
+        padding: 10px;
+    }
+    
+    .history-table {
+        font-size: 0.8em;
+    }
+    
+    .history-table th, .history-table td {
+        padding: 5px;
+    }
+}
